@@ -26,32 +26,28 @@
 
   const scale = 6.5;
 
-  const contour = [];
-  for (let t = 0; t < 2 * Math.PI; t += 0.005) {
-    contour.push({ x: heartX(t), y: heartY(t) });
-  }
-
+  // === ПРАВИЛЬНАЯ ПРОВЕРКА ВНУТРИ СЕРДЦА ===
+  // Нормализуем координаты и используем уравнение сердца.
+  // Уравнение: (x^2 + y^2 - 1)^3 - x^2 * y^3 <= 0
+  // Важно: y в уравнении идёт ВВЕРХ, а у нас в canvas — вниз.
   function isInsideHeart(px, py) {
-    let minDist = Infinity;
-    for (let i = 0; i < contour.length; i++) {
-      const dx = px - contour[i].x;
-      const dy = py - contour[i].y;
-      const dist = dx * dx + dy * dy;
-      if (dist < minDist) minDist = dist;
-    }
-    return minDist <= 2.5;
+    // Нормализуем: масштаб 16 по X, 13 по Y (как в формуле)
+    const nx = px / 16;
+    const ny = py / 13;
+    const a = nx * nx + ny * ny - 1;
+    return a * a * a - nx * nx * ny * ny * ny <= 0;
   }
 
-  const step = 0.8;
-  const xMin = -17, xMax = 17;
+  // === ЗАПОЛНЕНИЕ — РЕЖЕ, ЧТОБЫ БЫЛО МЕНЬШЕ СЛОВ ===
+  const step = 1.2; // шаг сетки (больше = меньше слов)
+  const xMin = -16, xMax = 16;
   const yMin = -17, yMax = 13;
 
   for (let x = xMin; x <= xMax; x += step) {
     for (let y = yMin; y <= yMax; y += step) {
-      const jitterX = (Math.random() - 0.5) * step * 0.8;
-      const jitterY = (Math.random() - 0.5) * step * 0.8;
-      const px = x + jitterX;
-      const py = y + jitterY;
+      // Лёгкое смещение, чтобы не было идеальной сетки
+      const px = x + (Math.random() - 0.5) * step * 0.8;
+      const py = y + (Math.random() - 0.5) * step * 0.8;
 
       if (isInsideHeart(px, py)) {
         fillPoints.push({
@@ -65,6 +61,7 @@
     }
   }
 
+  // === КОНТУР — равномерные точки ===
   function getUniformPoints(count) {
     const samples = 3000;
     const raw = [];
@@ -106,6 +103,7 @@
     });
   });
 
+  // Рандомный порядок появления
   fillPoints.sort(() => Math.random() - 0.5);
 
   const fillStartDelay = totalOutline * 0.2 + 1;
@@ -118,7 +116,7 @@
   let bigTextAlpha = 0;
 
   function animate() {
-    time += 0.025;  // БЫЛО 0.015 — СТАЛО 0.025 (БЫСТРЕЕ)
+    time += 0.025;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const offsetX = canvas.width / 2;
@@ -126,7 +124,7 @@
 
     allPoints.forEach((p) => {
       if (time > p.delay) {
-        if (p.alpha < 1) p.alpha += 0.025;  // БЫЛО 0.015 — СТАЛО 0.025 (БЫСТРЕЕ)
+        if (p.alpha < 1) p.alpha += 0.025;
       }
 
       if (p.alpha > 0) {
@@ -139,6 +137,7 @@
 
         const glow = p.alpha * 25;
 
+        // Свечение
         ctx.globalAlpha = p.alpha * 0.35;
         ctx.shadowColor = "#00BFFF";
         ctx.shadowBlur = glow;
@@ -149,6 +148,7 @@
         ctx.shadowBlur = glow * 0.5;
         ctx.fillText(text, x, y);
 
+        // Само слово
         ctx.globalAlpha = p.alpha;
         ctx.shadowBlur = 0;
         ctx.fillStyle = "#FFFFFF";
@@ -156,6 +156,7 @@
       }
     });
 
+    // Большая надпись
     const lastDelay = fillPoints[fillPoints.length - 1].delay;
     if (time > lastDelay + 1.5) {
       bigTextAlpha += 0.02;
