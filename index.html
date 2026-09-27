@@ -26,30 +26,45 @@
 
   const scale = 6.5;
 
-  // Проверка: внутри ли точка сердца (по формуле)
-  function isInsideHeart(x, y) {
-    // Переводим в нормализованные координаты (обратно к формуле)
-    const nx = x / scale;
-    const ny = y / scale;
-    // Уравнение сердца: (x^2 + y^2 - 1)^3 - x^2 * y^3 <= 0
-    const a = nx * nx + ny * ny - 1;
-    return a * a * a - nx * nx * ny * ny * ny <= 0;
-  }
+  // === ЗАПОЛНЕНИЕ ===
+  // Идём по координатной сетке X/Y и проверяем, внутри ли точка.
+  // Но делаем это в правильных пропорциях, чтобы края заполнялись тоже.
 
-  // === РАВНОМЕРНОЕ ЗАПОЛНЕНИЕ ПО СЕТКЕ ===
-  const gridStep = 0.35; // шаг сетки (меньше = плотнее)
-  const maxX = 17;       // границы сердца по X (примерно)
-  const maxY = 14;       // по Y
+  // Границы сердца (по формуле): X от -16 до 16, Y от -17 до 13
+  const xMin = -16, xMax = 16;
+  const yMin = -17, yMax = 13;
 
-  for (let x = -maxX; x <= maxX; x += gridStep) {
-    for (let y = -maxY; y <= maxY; y += gridStep) {
-      // Небольшое случайное смещение, чтобы не было идеальной сетки
-      const jitterX = (Math.random() - 0.5) * gridStep * 0.5;
-      const jitterY = (Math.random() - 0.5) * gridStep * 0.5;
-      const px = x + jitterX;
-      const py = y + jitterY;
+  // Шаг сетки
+  const stepX = 0.5;
+  const stepY = 0.5;
 
-      if (isInsideHeart(px, py)) {
+  for (let x = xMin; x <= xMax; x += stepX) {
+    for (let y = yMin; y <= yMax; y += stepY) {
+      
+      // Небольшое смещение для естественности
+      const px = x + (Math.random() - 0.5) * stepX * 0.6;
+      const py = y + (Math.random() - 0.5) * stepY * 0.6;
+
+      // Проверка внутри сердца по параметрической формуле
+      // Находим ближайший угол t
+      let inside = false;
+      for (let t = 0; t < 2 * Math.PI; t += 0.05) {
+        const hx = heartX(t);
+        const hy = heartY(t);
+        // Простая проверка: точка внутри, если она близка к форме
+        // Используем нормализованное сравнение
+        const dist = Math.sqrt((px - hx) * (px - hx) + (py - hy) * (py - hy));
+        if (dist < 1.5) {
+          // Точка на границе — тоже оставим
+        }
+      }
+
+      // Более надёжная проверка через уравнение сердца:
+      // (x² + y² - 1)³ - x²y³ <= 0
+      const nx = px / 16;
+      const ny = py / 13;
+      const a = nx * nx + ny * ny - 1;
+      if (a * a * a - nx * nx * ny * ny * ny <= 0) {
         fillPoints.push({
           x: px * scale,
           y: py * scale,
@@ -103,12 +118,12 @@
     });
   });
 
-  // Заполнение — рандомный порядок появления
+  // Рандомный порядок появления для заполнения
   fillPoints.sort(() => Math.random() - 0.5);
 
   const fillStartDelay = totalOutline * 0.1 + 0.3;
   fillPoints.forEach((p, i) => {
-    p.delay = fillStartDelay + i * 0.03; // постепенно
+    p.delay = fillStartDelay + i * 0.015; // постепенно
   });
 
   const allPoints = [...outlinePoints, ...fillPoints];
@@ -134,7 +149,7 @@
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
 
-        // GLOW — голубое свечение вокруг белых слов
+        // GLOW
         ctx.globalAlpha = p.alpha * 0.35;
         ctx.shadowColor = "#00BFFF";
         ctx.shadowBlur = 25;
@@ -153,7 +168,7 @@
       }
     });
 
-    // БОЛЬШАЯ ГОЛУБАЯ НАДПИСЬ В КОНЦЕ
+    // БОЛЬШАЯ НАДПИСЬ
     const lastDelay = fillPoints[fillPoints.length - 1].delay;
     if (time > lastDelay + 1.5) {
       bigTextAlpha += 0.02;
