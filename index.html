@@ -24,11 +24,11 @@
   function heartX(t) { return 16 * Math.pow(Math.sin(t), 3); }
   function heartY(t) { return 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t); }
 
-  // УМЕНЬШИЛ РАЗМЕР СЕРДЦА
-  const scale = 10; 
+  // СОВСЕМ МАЛЕНЬКОЕ СЕРДЦЕ
+  const scale = 6; 
 
-  // УМЕНЬШИЛ КОЛИЧЕСТВО СЛОВ
-  const total = 60; 
+  // МАЛО СЛОВ
+  const total = 40; 
   
   for (let i = 0; i < total; i++) {
     const t = (i / total) * 2 * Math.PI;
@@ -36,20 +36,20 @@
     points.push({
       x: heartX(t) * scale,
       y: heartY(t) * scale,
-      size: Math.random() * 5 + 4, // Слова мелкие
+      size: Math.random() * 3 + 3, // Совсем мелкие буквы
       alpha: 0,
-      delay: i * 0.08 
+      delay: i * 0.1 
     });
   }
 
   let time = 0;
 
   function animate() {
-    time += 0.02; // Медленно, как рукой рисуешь
+    time += 0.02; 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     const offsetX = canvas.width / 2;
-    const offsetY = canvas.height / 2 + (canvas.height * 0.05); 
+    const offsetY = canvas.height / 2 + (canvas.height * 0.03); 
 
     points.forEach((p) => {
       if (time > p.delay) {
@@ -64,12 +64,12 @@
       }
     });
 
-    // Белая надпись в конце
-    if (time > total * 0.08 + 1.5) {
+    // Маленькая белая надпись в конце
+    if (time > total * 0.1 + 1) {
       ctx.globalAlpha = 0.8;
-      ctx.font = `bold 22px Georgia`; 
+      ctx.font = `bold 14px Georgia`; 
       ctx.fillStyle = "#FFFFFF";
-      ctx.fillText("I Love You", offsetX, offsetY - (canvas.height * 0.04));
+      ctx.fillText("I Love You", offsetX, offsetY - (canvas.height * 0.02));
     }
 
     ctx.globalAlpha = 1;
