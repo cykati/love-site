@@ -18,11 +18,7 @@
   canvas.height = window.innerHeight;
 
   const text = "I love you";
-  const wordColor = "#00BFFF";
-  
-  // Точки контура (рисуются по порядку, как рукой)
   const outlinePoints = [];
-  // Точки заполнения (появляются после контура)
   const fillPoints = [];
 
   function heartX(t) { return 16 * Math.pow(Math.sin(t), 3); }
@@ -30,45 +26,76 @@
 
   const scale = 6.5;
 
-  // 1. КОНТУР — 40 точек
-  const totalOutline = 40;
-  for (let i = 0; i < totalOutline; i++) {
-    const t = (i / totalOutline) * 2 * Math.PI;
-    outlinePoints.push({
-      x: heartX(t) * scale,
-      y: heartY(t) * scale,
-      size: 10,        // одинаковый размер — ровнее
-      alpha: 0,
-      delay: i * 0.12  // медленное появление контура
-    });
+  // === РАВНОМЕРНОЕ РАСПРЕДЕЛЕНИЕ ТОЧЕК ПО КОНТУРУ ===
+  // Сначала сэмплируем кривую, потом идём с равным шагом по длине.
+  function getUniformPoints(count) {
+    const samples = 3000;
+    const raw = [];
+    let totalLen = 0;
+
+    // Замеряем длину кривой
+    for (let i = 0; i <= samples; i++) {
+      const t = (i / samples) * 2 * Math.PI;
+      const x = heartX(t);
+      const y = heartY(t);
+      if (i > 0) {
+        const dx = x - raw[raw.length - 1].x;
+        const dy = y - raw[raw.length - 1].y;
+        totalLen += Math.sqrt(dx * dx + dy * dy);
+      }
+      raw.push({ x, y, len: totalLen });
+    }
+
+    // Идём с равным шагом
+    const step = totalLen / count;
+    const result = [];
+    let target = 0;
+    let j = 0;
+    for (let i = 0; i <= samples; i++) {
+      if (raw[i].len >= target) {
+        result.push({ x: raw[i].x, y: raw[i].y });
+        target += step;
+        j++;
+        if (j >= count) break;
+      }
+    }
+    return result;
   }
 
-  // 2. ЗАПОЛНЕНИЕ — 60 точек внутри
+  // КОНТУР — 40 точек, равномерно
+  const uniformOutline = getUniformPoints(40);
+  uniformOutline.forEach((pt, i) => {
+    outlinePoints.push({
+      x: pt.x * scale,
+      y: pt.y * scale,
+      size: 10,
+      alpha: 0,
+      delay: i * 0.12
+    });
+  });
+
+  // ЗАПОЛНЕНИЕ
   const totalFill = 60;
   for (let i = 0; i < totalFill; i++) {
     const t = Math.random() * 2 * Math.PI;
-    const r = Math.random() * 0.85; // заполняем внутри
+    const r = Math.random() * 0.85;
     fillPoints.push({
       x: heartX(t) * scale * r,
       y: heartY(t) * scale * r,
       size: 9,
       alpha: 0,
-      delay: 0 // задержку рассчитаем после контура
+      delay: 0
     });
   }
 
-  // Сортируем заполнение сверху вниз
   fillPoints.sort((a, b) => b.y - a.y);
-
-  // Задержка для заполнения = после контура
-  const fillStartDelay = totalOutline * 0.12 + 0.5;
+  const fillStartDelay = 40 * 0.12 + 0.5;
   fillPoints.forEach((p, i) => {
     p.delay = fillStartDelay + i * 0.03;
   });
 
-  let time = 0;
-  const totalAll = outlinePoints.length + fillPoints.length;
   const allPoints = [...outlinePoints, ...fillPoints];
+  let time = 0;
 
   function animate() {
     time += 0.02;
@@ -85,33 +112,31 @@
         const x = offsetX + p.x;
         const y = offsetY - p.y;
 
-        // СИЛЬНОЕ СВЕЧЕНИЕ (glow) — рисуем 2 раза
-        ctx.globalAlpha = p.alpha * 0.5;
-        ctx.shadowColor = "#00BFFF";
-        ctx.shadowBlur = 30;                 // сильнее свечение
         ctx.font = `bold ${p.size}px Arial`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        // GLOW: три слоя
+        ctx.globalAlpha = p.alpha * 0.4;
+        ctx.shadowColor = "#00BFFF";
+        ctx.shadowBlur = 50;
         ctx.fillStyle = "#00BFFF";
         ctx.fillText(text, x, y);
 
-        // Второй слой свечения (ещё шире)
-        ctx.globalAlpha = p.alpha * 0.3;
-        ctx.shadowBlur = 45;
+        ctx.globalAlpha = p.alpha * 0.5;
+        ctx.shadowBlur = 25;
         ctx.fillText(text, x, y);
 
-        // САМО СЛОВО поверх свечения
         ctx.globalAlpha = p.alpha;
-        ctx.shadowBlur = 12;
-        ctx.fillStyle = "#B3F0FF";           // светлее для контраста
-        ctx.fillText(text, x, y);
-
         ctx.shadowBlur = 0;
+        ctx.fillStyle = "#00BFFF";
+        ctx.fillText(text, x, y);
       }
     });
 
-    // БЕЛАЯ НАДПИСЬ В КОНЦЕ
+    // БЕЛАЯ НАДПИСЬ
     if (time > fillPoints[fillPoints.length - 1].delay + 1.5) {
-      const bigFlicker = Math.sin(time * 2) * 0.15 + 0.85;
-      ctx.globalAlpha = bigFlicker;
+      ctx.globalAlpha = 0.9;
       ctx.shadowColor = "#FFFFFF";
       ctx.shadowBlur = 25;
       ctx.font = `bold 24px Georgia`;
