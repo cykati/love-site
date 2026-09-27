@@ -19,26 +19,56 @@
 
   const text = "I love you";
   const wordColor = "#00BFFF";
-  const points = [];
+  
+  // Точки контура (рисуются по порядку, как рукой)
+  const outlinePoints = [];
+  // Точки заполнения (появляются после контура)
+  const fillPoints = [];
 
   function heartX(t) { return 16 * Math.pow(Math.sin(t), 3); }
   function heartY(t) { return 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t); }
 
-  const scale = 6.5; // чуть больше, чтобы буквы влезли
-  const total = 35;
+  const scale = 6.5;
 
-  for (let i = 0; i < total; i++) {
-    const t = (i / total) * 2 * Math.PI;
-    points.push({
+  // 1. КОНТУР — 40 точек
+  const totalOutline = 40;
+  for (let i = 0; i < totalOutline; i++) {
+    const t = (i / totalOutline) * 2 * Math.PI;
+    outlinePoints.push({
       x: heartX(t) * scale,
       y: heartY(t) * scale,
-      size: Math.random() * 4 + 8, // БУКВЫ КРУПНЕЕ (было 3+3)
+      size: 10,        // одинаковый размер — ровнее
       alpha: 0,
-      delay: i * 0.1
+      delay: i * 0.12  // медленное появление контура
     });
   }
 
+  // 2. ЗАПОЛНЕНИЕ — 60 точек внутри
+  const totalFill = 60;
+  for (let i = 0; i < totalFill; i++) {
+    const t = Math.random() * 2 * Math.PI;
+    const r = Math.random() * 0.85; // заполняем внутри
+    fillPoints.push({
+      x: heartX(t) * scale * r,
+      y: heartY(t) * scale * r,
+      size: 9,
+      alpha: 0,
+      delay: 0 // задержку рассчитаем после контура
+    });
+  }
+
+  // Сортируем заполнение сверху вниз
+  fillPoints.sort((a, b) => b.y - a.y);
+
+  // Задержка для заполнения = после контура
+  const fillStartDelay = totalOutline * 0.12 + 0.5;
+  fillPoints.forEach((p, i) => {
+    p.delay = fillStartDelay + i * 0.03;
+  });
+
   let time = 0;
+  const totalAll = outlinePoints.length + fillPoints.length;
+  const allPoints = [...outlinePoints, ...fillPoints];
 
   function animate() {
     time += 0.02;
@@ -47,7 +77,7 @@
     const offsetX = canvas.width / 2;
     const offsetY = canvas.height / 2 + (canvas.height * 0.02);
 
-    points.forEach((p) => {
+    allPoints.forEach((p) => {
       if (time > p.delay) {
         if (p.alpha < 1) p.alpha += 0.05;
       }
@@ -55,35 +85,39 @@
         const x = offsetX + p.x;
         const y = offsetY - p.y;
 
-        // СВЕЧЕНИЕ ПОЗАДИ СЛОВА
-        ctx.globalAlpha = p.alpha * 0.4;
-        ctx.shadowColor = "#00BFFF";   // синее свечение
-        ctx.shadowBlur = 18;
+        // СИЛЬНОЕ СВЕЧЕНИЕ (glow) — рисуем 2 раза
+        ctx.globalAlpha = p.alpha * 0.5;
+        ctx.shadowColor = "#00BFFF";
+        ctx.shadowBlur = 30;                 // сильнее свечение
         ctx.font = `bold ${p.size}px Arial`;
         ctx.fillStyle = "#00BFFF";
         ctx.fillText(text, x, y);
 
-        // САМО СЛОВО (ярче, поверх свечения)
-        ctx.globalAlpha = p.alpha;
-        ctx.shadowBlur = 8;
-        ctx.fillStyle = "#7FE7FF"; // светлее для контраста
+        // Второй слой свечения (ещё шире)
+        ctx.globalAlpha = p.alpha * 0.3;
+        ctx.shadowBlur = 45;
         ctx.fillText(text, x, y);
 
-        // сброс
+        // САМО СЛОВО поверх свечения
+        ctx.globalAlpha = p.alpha;
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = "#B3F0FF";           // светлее для контраста
+        ctx.fillText(text, x, y);
+
         ctx.shadowBlur = 0;
       }
     });
 
-    // БЕЛАЯ НАДПИСЬ — СТРОГО ПО ЦЕНТРУ
-    if (time > total * 0.1 + 1) {
-      ctx.globalAlpha = 0.9;
+    // БЕЛАЯ НАДПИСЬ В КОНЦЕ
+    if (time > fillPoints[fillPoints.length - 1].delay + 1.5) {
+      const bigFlicker = Math.sin(time * 2) * 0.15 + 0.85;
+      ctx.globalAlpha = bigFlicker;
       ctx.shadowColor = "#FFFFFF";
-      ctx.shadowBlur = 20;
-      ctx.font = `bold 22px Georgia`;
+      ctx.shadowBlur = 25;
+      ctx.font = `bold 24px Georgia`;
       ctx.fillStyle = "#FFFFFF";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      // Рисуем ровно в центре экрана
       ctx.fillText("I Love You", canvas.width / 2, canvas.height / 2);
       ctx.shadowBlur = 0;
     }
@@ -97,7 +131,7 @@
   window.addEventListener('resize', () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    points.forEach(p => p.alpha = 0);
+    allPoints.forEach(p => p.alpha = 0);
     time = 0;
     animate();
   });
