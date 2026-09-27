@@ -18,6 +18,7 @@
   canvas.height = window.innerHeight;
 
   const text = "I love you";
+  const wordColor = "#FFFFFF"; // БЕЛЫЕ СЛОВА В СЕРДЦЕ
   const outlinePoints = [];
   const fillPoints = [];
 
@@ -26,14 +27,11 @@
 
   const scale = 6.5;
 
-  // === РАВНОМЕРНОЕ РАСПРЕДЕЛЕНИЕ ТОЧЕК ПО КОНТУРУ ===
-  // Сначала сэмплируем кривую, потом идём с равным шагом по длине.
+  // Равномерные точки по контуру
   function getUniformPoints(count) {
     const samples = 3000;
     const raw = [];
     let totalLen = 0;
-
-    // Замеряем длину кривой
     for (let i = 0; i <= samples; i++) {
       const t = (i / samples) * 2 * Math.PI;
       const x = heartX(t);
@@ -45,12 +43,9 @@
       }
       raw.push({ x, y, len: totalLen });
     }
-
-    // Идём с равным шагом
     const step = totalLen / count;
     const result = [];
-    let target = 0;
-    let j = 0;
+    let target = 0, j = 0;
     for (let i = 0; i <= samples; i++) {
       if (raw[i].len >= target) {
         result.push({ x: raw[i].x, y: raw[i].y });
@@ -62,36 +57,36 @@
     return result;
   }
 
-  // КОНТУР — 40 точек, равномерно
-  const uniformOutline = getUniformPoints(40);
+  // КОНТУР — 25 точек
+  const totalOutline = 25;
+  const uniformOutline = getUniformPoints(totalOutline);
   uniformOutline.forEach((pt, i) => {
     outlinePoints.push({
       x: pt.x * scale,
       y: pt.y * scale,
-      size: 10,
+      size: 8,
       alpha: 0,
-      delay: i * 0.12
+      delay: i * 0.15
     });
   });
 
-  // ЗАПОЛНЕНИЕ
-  const totalFill = 60;
+  // ЗАПОЛНЕНИЕ — 40 точек, рандомно
+  const totalFill = 40;
   for (let i = 0; i < totalFill; i++) {
     const t = Math.random() * 2 * Math.PI;
-    const r = Math.random() * 0.85;
+    const r = Math.random() * 0.9;
     fillPoints.push({
       x: heartX(t) * scale * r,
       y: heartY(t) * scale * r,
-      size: 9,
+      size: 7,
       alpha: 0,
       delay: 0
     });
   }
 
-  fillPoints.sort((a, b) => b.y - a.y);
-  const fillStartDelay = 40 * 0.12 + 0.5;
+  const fillStartDelay = totalOutline * 0.15 + 0.5;
   fillPoints.forEach((p, i) => {
-    p.delay = fillStartDelay + i * 0.03;
+    p.delay = fillStartDelay + i * 0.04;
   });
 
   const allPoints = [...outlinePoints, ...fillPoints];
@@ -116,31 +111,32 @@
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
 
-        // GLOW: три слоя
+        // GLOW — свечение вокруг белого слова (голубое, чтобы выделялось)
         ctx.globalAlpha = p.alpha * 0.4;
         ctx.shadowColor = "#00BFFF";
-        ctx.shadowBlur = 50;
-        ctx.fillStyle = "#00BFFF";
+        ctx.shadowBlur = 30;
+        ctx.fillStyle = "#FFFFFF";
         ctx.fillText(text, x, y);
 
         ctx.globalAlpha = p.alpha * 0.5;
-        ctx.shadowBlur = 25;
+        ctx.shadowBlur = 15;
         ctx.fillText(text, x, y);
 
+        // Само слово — белое
         ctx.globalAlpha = p.alpha;
         ctx.shadowBlur = 0;
-        ctx.fillStyle = "#00BFFF";
+        ctx.fillStyle = wordColor;
         ctx.fillText(text, x, y);
       }
     });
 
-    // БЕЛАЯ НАДПИСЬ
+    // БОЛЬШАЯ НАДПИСЬ В КОНЦЕ — ГОЛУБАЯ (контраст с белым сердцем)
     if (time > fillPoints[fillPoints.length - 1].delay + 1.5) {
-      ctx.globalAlpha = 0.9;
-      ctx.shadowColor = "#FFFFFF";
-      ctx.shadowBlur = 25;
+      ctx.globalAlpha = 0.95;
+      ctx.shadowColor = "#00BFFF";
+      ctx.shadowBlur = 35;
       ctx.font = `bold 24px Georgia`;
-      ctx.fillStyle = "#FFFFFF";
+      ctx.fillStyle = "#00BFFF"; // голубая надпись
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText("I Love You", canvas.width / 2, canvas.height / 2);
