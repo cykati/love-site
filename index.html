@@ -26,45 +26,42 @@
 
   const scale = 6.5;
 
-  // === ЗАПОЛНЕНИЕ ===
-  // Идём по координатной сетке X/Y и проверяем, внутри ли точка.
-  // Но делаем это в правильных пропорциях, чтобы края заполнялись тоже.
+  // === ПРАВИЛЬНАЯ ПРОВЕРКА ВНУТРИ СЕРДЦА ===
+  // Идём по контуру, строим массив точек формы.
+  // Точка считается внутри, если она ближе к какой-то точке контура, чем заданный радиус.
+  const contour = [];
+  for (let t = 0; t < 2 * Math.PI; t += 0.005) {
+    contour.push({ x: heartX(t), y: heartY(t) });
+  }
 
-  // Границы сердца (по формуле): X от -16 до 16, Y от -17 до 13
-  const xMin = -16, xMax = 16;
+  // Для каждой точки ищем минимальное расстояние до контура
+  function isInsideHeart(px, py) {
+    let minDist = Infinity;
+    for (let i = 0; i < contour.length; i++) {
+      const dx = px - contour[i].x;
+      const dy = py - contour[i].y;
+      const dist = dx * dx + dy * dy;
+      if (dist < minDist) minDist = dist;
+    }
+    // Если расстояние меньше радиуса — внутри
+    // Радиус подобран эмпирически (2.5 — норм)
+    return minDist <= 6; 
+  }
+
+  // === ЗАПОЛНЕНИЕ ===
+  // Идём по сетке, проверяем, внутри ли.
+  const step = 0.5;
+  const xMin = -17, xMax = 17;
   const yMin = -17, yMax = 13;
 
-  // Шаг сетки
-  const stepX = 0.5;
-  const stepY = 0.5;
+  for (let x = xMin; x <= xMax; x += step) {
+    for (let y = yMin; y <= yMax; y += step) {
+      const jitterX = (Math.random() - 0.5) * step * 0.8;
+      const jitterY = (Math.random() - 0.5) * step * 0.8;
+      const px = x + jitterX;
+      const py = y + jitterY;
 
-  for (let x = xMin; x <= xMax; x += stepX) {
-    for (let y = yMin; y <= yMax; y += stepY) {
-      
-      // Небольшое смещение для естественности
-      const px = x + (Math.random() - 0.5) * stepX * 0.6;
-      const py = y + (Math.random() - 0.5) * stepY * 0.6;
-
-      // Проверка внутри сердца по параметрической формуле
-      // Находим ближайший угол t
-      let inside = false;
-      for (let t = 0; t < 2 * Math.PI; t += 0.05) {
-        const hx = heartX(t);
-        const hy = heartY(t);
-        // Простая проверка: точка внутри, если она близка к форме
-        // Используем нормализованное сравнение
-        const dist = Math.sqrt((px - hx) * (px - hx) + (py - hy) * (py - hy));
-        if (dist < 1.5) {
-          // Точка на границе — тоже оставим
-        }
-      }
-
-      // Более надёжная проверка через уравнение сердца:
-      // (x² + y² - 1)³ - x²y³ <= 0
-      const nx = px / 16;
-      const ny = py / 13;
-      const a = nx * nx + ny * ny - 1;
-      if (a * a * a - nx * nx * ny * ny * ny <= 0) {
+      if (isInsideHeart(px, py)) {
         fillPoints.push({
           x: px * scale,
           y: py * scale,
@@ -92,13 +89,13 @@
       }
       raw.push({ x, y, len: totalLen });
     }
-    const step = totalLen / count;
+    const stepU = totalLen / count;
     const result = [];
     let target = 0, j = 0;
     for (let i = 0; i <= samples; i++) {
       if (raw[i].len >= target) {
         result.push({ x: raw[i].x, y: raw[i].y });
-        target += step;
+        target += stepU;
         j++;
         if (j >= count) break;
       }
@@ -123,7 +120,7 @@
 
   const fillStartDelay = totalOutline * 0.1 + 0.3;
   fillPoints.forEach((p, i) => {
-    p.delay = fillStartDelay + i * 0.015; // постепенно
+    p.delay = fillStartDelay + i * 0.015;
   });
 
   const allPoints = [...outlinePoints, ...fillPoints];
