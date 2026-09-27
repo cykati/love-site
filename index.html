@@ -24,23 +24,20 @@
   function heartX(t) { return 16 * Math.pow(Math.sin(t), 3); }
   function heartY(t) { return 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t); }
 
-  const scale = 15;
+  // УМЕНЬШИЛ РАЗМЕР СЕРДЦА
+  const scale = 10; 
 
-  // Идём строго по контуру, начиная с правого верха (t = 0)
-  // и по часовой стрелке вниз, потом влево, потом вверх.
-  const total = 150; // меньше слов — чтобы не было каши
+  // УМЕНЬШИЛ КОЛИЧЕСТВО СЛОВ
+  const total = 60; 
   
   for (let i = 0; i < total; i++) {
-    // t идёт от 0 до 2*PI (полный круг по часовой стрелке)
-    // t=0 — верхушка, t=PI/2 — правая сторона, t=PI — низ, t=3PI/2 — левая сторона
     const t = (i / total) * 2 * Math.PI;
     
     points.push({
       x: heartX(t) * scale,
       y: heartY(t) * scale,
-      size: Math.random() * 6 + 5,
+      size: Math.random() * 5 + 4, // Слова мелкие
       alpha: 0,
-      // Слова появляются не все сразу, а с задержкой по порядку
       delay: i * 0.08 
     });
   }
@@ -52,12 +49,11 @@
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     const offsetX = canvas.width / 2;
-    const offsetY = canvas.height / 2 + (canvas.height * 0.1); 
+    const offsetY = canvas.height / 2 + (canvas.height * 0.05); 
 
     points.forEach((p) => {
-      // Появляется, если время дошло до его задержки
       if (time > p.delay) {
-        if (p.alpha < 1) p.alpha += 0.05; // Плавное проявление
+        if (p.alpha < 1) p.alpha += 0.05;
       }
 
       if (p.alpha > 0) {
@@ -71,9 +67,9 @@
     // Белая надпись в конце
     if (time > total * 0.08 + 1.5) {
       ctx.globalAlpha = 0.8;
-      ctx.font = `bold 28px Georgia`;
+      ctx.font = `bold 22px Georgia`; 
       ctx.fillStyle = "#FFFFFF";
-      ctx.fillText("I Love You", offsetX, offsetY - (canvas.height * 0.08));
+      ctx.fillText("I Love You", offsetX, offsetY - (canvas.height * 0.04));
     }
 
     ctx.globalAlpha = 1;
